@@ -5,20 +5,27 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.awt.Point;
 
-import java.lang.Integer;
-
+/**
+ * A pathfinding algorithm (A* pathfinding) to find the shortest path given a Maze.
+ * <p> The algorithm uses the distance to the start and to the end and adds them together for each tile
+ * to explore only the shortest possible path first but if there is a wall in the way, it will expand outwards
+ * to longer paths until a path to the end is found.
+ */
 public class AstarPathfinding
 {
 	private Maze maze;
 	private Path path;
-	private Set<Point> calculatedPoints;
-	private FSumComparator pointComparator;
+	// Tiles that have already been checked for a path
+	private Set<Point> calculatedTiles;
+	// Comparator to sort points based on their F value
+	private FSumComparator fComparator;
+	// Used to stop recursion once end tile is found
 	private boolean foundPath;
 
 	/**
 	 * Generates and returns a Path object giving the shortest path from one point to another using the specified maze
 	 * 
-	 * @param maze the maze to be solved
+	 * @param maze the Maze to be solved
 	 * @return the closest path between the two points in the maze. Returns null if there is no possible path.
 	 * @throws IllegalArgumentException if maze is null
 	 */
@@ -26,6 +33,7 @@ public class AstarPathfinding
 	{
 		if (maze == null) throw new IllegalArgumentException("null parameter");
 		
+		// Uses a private instance of this class to maintain the algorithm's information
 		AstarPathfinding pathfinder = new AstarPathfinding(maze);
 		if (pathfinder.foundPath) {
 			return pathfinder.path;
@@ -34,94 +42,100 @@ public class AstarPathfinding
 		}
 	}
 	
+	// Constructor that sets up the algorithm.
+	// An instanced version is used because multiple variables need to be maintained.
+	// It is private so users will only use the static findPath method which is all they need.
 	private AstarPathfinding(Maze maze)
 	{
 		this.maze = maze;
 		this.path = new Path();
-		this.calculatedPoints = new HashSet<>();
-		this.pointComparator = new FSumComparator(maze);
+		this.calculatedTiles = new HashSet<>();
+		this.fComparator = new FSumComparator(maze);
 		this.foundPath = false;
 		
-		// TODO add start point to path and calculatedPoint
+		// Add start to beginning of path and to calculatedTiles so it isn't checked for a path again.
 		Point start = maze.getStart();
-		path.addMove((int)start.getX(), (int)start.getY());
-		calculatedPoints.add(start);
+		path.push(start);
+		calculatedTiles.add(start);
 		
+		// Begin recursion
 		findPath((int)start.getX(), (int)start.getY());
 	}
 	
-	// Helper method that uses memoization and recursion
+	// Helper method that uses memoization and recursion to explore shortest paths to farthest paths until a valid path is found
 	private void findPath(int x, int y)
 	{
-		Point end = maze.getDestination();
+		Point end = maze.getEnd();
 		if (x == (int)end.getX() && y == (int)end.getY()) {
 			foundPath = true;
 			return;
 		}
 	
 		// Stores the adjacent points and is sorted from lowest F value to highest.
-		List<Point> adjacentPoints = getAvailableAdjacentPoints(x, y);
+		List<Point> adjacentTiles = getAdjacentTiles(x, y);
 		// No need to re-test already calculated points
-		adjacentPoints.removeAll(calculatedPoints);
-		calculatedPoints.addAll(adjacentPoints);
+		calculatedTiles.addAll(adjacentTiles);
 		
-		for (Point point : adjacentPoints) {
-			path.addMove((int)point.getX(), (int)point.getY());
-			findPath((int)point.getX(), (int)point.getY());
+		// Recursively check each nearby tile for the shortest path. Goes in order for closest node to farthest node
+		// Removes the tile from the path if it isn't valid
+		for (Point tile : adjacentTiles) {
+			path.push(tile);
+			findPath((int)tile.getX(), (int)tile.getY());
 			if (foundPath) {
 				return;
 			}
-			path.removeLastMove();
+			path.pop();
 		}
 	}
 	
-	/**
-	 * Returns a list containing the adjacent points of the current point given x and y.
-	 * Doesn't include points that have already been checked and generated via previous path checks
+	/*
+	 * Returns a list containing the adjacent tiles of the center tile given x and y.
+	 * Doesn't include tiles that have already been checked and generated via previous path checks
 	 * (this memoized info is in calculatedPoints).
 	 *
-	 * @param maze the maze being solved
-	 * @param calculatedPoints points that have been checked for a path already and shouldn't be checked again (stores the index of the position)
 	 * @param x the x coordinate of the center point
 	 * @param y the y coordinate of the center point
+	 * @return the list of adjacent tiles to check for a path sorted based on their F values
 	 */
-	private List<Point> getAvailableAdjacentPoints(int x, int y)
+	private List<Point> getAdjacentTiles(int x, int y)
 	{
-		List<Point> adjacentPoints = new ArrayList<>();
-		// adds points north, south, east, and west of the given x and y point
-		addPointIfAvailable(adjacentPoints, x, y + 1);
-		addPointIfAvailable(adjacentPoints, x, y - 1);
-		addPointIfAvailable(adjacentPoints, x + 1, y);
-		addPointIfAvailable(adjacentPoints, x - 1, y);
+		List<Point> adjacentTiles = new ArrayList<>();
+		// adds tiles east, sout, west, north of the given x and y point
+		// Must be added in clockwise or counter clockwise order or else it will result in weird
+		// patterns that aren't the shortest distance.
+		addTile(adjacentTiles, x + 1, y);
+		addTile(adjacentTiles, x, y + 1);
+		addTile(adjacentTiles, x - 1, y);
+		addTile(adjacentTiles, x, y - 1);
 		
-		// sort points based on f value
-		adjacentPoints.sort(pointComparator);
+		// sort tiles based on f value
+		adjacentTiles.sort(fComparator);
 		
-		return adjacentPoints;
+		return adjacentTiles;
 	}
 	
-	/**
+	/*
 	 * Adds the point at the specified x and y to the adjacentPoints List if the point isn't contained in calculatedPoints and
 	 * it is within the maze and isn't a wall.
 	 *
-	 * @param maze the maze to be solved
-	 * @param calculatedPoints points that have been checked for a path already and shouldn't be checked again (stores the index of the position)
 	 * @param adjacentPoints the list to add the point to
 	 * @param x the x coordinate of the point to check
 	 * @param y the y coordinate of the point to check
 	 */
-	private void addPointIfAvailable(List<Point> adjacentPoints, int x, int y)
+	private void addTile(List<Point> adjacentTiles, int x, int y)
 	{
-		Point point = new Point(x, y);
-		Maze.PointType pointType = maze.getPoint(x, y);
-		if (pointType == Maze.PointType.EMPTY || pointType == Maze.PointType.DESTINATION) {
-			adjacentPoints.add(point);
+		Point tile = new Point(x, y);
+		Maze.TileType tileType = maze.getTile(x, y);
+		// Adds tile if it hasn't already been tested and isn't out of bounds or a wall
+		if (!calculatedTiles.contains(tile) && (tileType == Maze.TileType.EMPTY || tileType == Maze.TileType.END)) {
+			adjacentTiles.add(tile);
 		}
 	}
 	
-	/**
-	 * Used in A* pathfinding and is known as the character 'g'.
-	 * f = g + h, the sum of the moving distance to the start and the end.
+	/*
+	 * Returns the sum of the moving distance to the start and to the end.
+	 * Used in A* pathfinding and is known as the character 'f'.
+	 * f = g + h
 	 *
 	 * @param maze the maze to be solved
 	 * @param x the x coordinate of the point to calculate
@@ -133,9 +147,9 @@ public class AstarPathfinding
 		return calculateG(maze, x, y) + calculateH(maze, x, y);		
 	}
 	
-	/**
+	/*
+	 * Returns the distance from the current point specified by x and y to the start.
 	 * Used in A* pathfinding and is known as the character 'g'.
-	 * g = the distance from the current point to the start.
 	 *
 	 * @param maze the maze to be solved
 	 * @param x the x coordinate of the point to calculate
@@ -145,12 +159,12 @@ public class AstarPathfinding
 	private static int calculateG(Maze maze, int x, int y)
 	{
 		Point start = maze.getStart();
-		return calculateMoveDistance(x, y, (int)start.getX(), (int)start.getY());
+		return calculateTileDistance(x, y, (int)start.getX(), (int)start.getY());
 	}
 	
-	/**
+	/*
+	 * Returns the distance from the current point specified by x and y to the end.
 	 * Used in A* pathfinding and is known as the character 'h'.
-	 * h = the distance from the current point to the end.
 	 *
 	 * @param maze the maze to be solved
 	 * @param x the x coordinate of the point to calculate
@@ -159,25 +173,29 @@ public class AstarPathfinding
 	 */
 	private static int calculateH(Maze maze, int x, int y)
 	{
-		Point end = maze.getDestination();
-		return calculateMoveDistance(x, y, (int)end.getX(), (int)end.getY());
+		Point end = maze.getEnd();
+		return calculateTileDistance(x, y, (int)end.getX(), (int)end.getY());
 	}
 	
-	/**
-	 * Returns the move distance which is the number of steps from one point to another.
-	 * distance = |y2 - y1| + |x2 - x1|
+	/*
+	 * Returns the distance between two tiles.
+	 * distance = maximum of (|y2 - y1|, |x2 - x1|)
 	 *
 	 * @param x1 the x coordinate of the first point
 	 * @param y1 the y coordinate of the first point
 	 * @param x2 the x coordinate of the second point
 	 * @param y2 the y coordinate of the second point
-	 * @return move distance
+	 * @return tile distance
 	 */
-	private static int calculateMoveDistance(int x1, int y1, int x2, int y2)
+	private static int calculateTileDistance(int x1, int y1, int x2, int y2)
 	{
-		return Math.abs(x2 - x1) + Math.abs(y2 - y1);
+		int dx = Math.abs(x2 - x1);
+		int dy = Math.abs(y2 - y1);
+		return dy > dx ? dy : dx;
 	}
 	
+	// Compares points using their F values.
+	// Used to sort a list of points to explore shortest paths first (lowest F value points first)
 	private class FSumComparator implements Comparator<Point>
 	{
 		Maze maze;
@@ -187,10 +205,11 @@ public class AstarPathfinding
 			this.maze = maze;
 		}
 	
-		public int compare(Point o1, Point o2)
+		// Compares two points using their F values
+		public int compare(Point p1, Point p2)
 		{
-			int f1 = calculateF(maze, (int)o1.getX(), (int)o1.getY());
-			int f2 = calculateF(maze, (int)o2.getX(), (int)o2.getY());
+			int f1 = calculateF(maze, (int)p1.getX(), (int)p1.getY());
+			int f2 = calculateF(maze, (int)p2.getX(), (int)p2.getY());
 			if (f1 == f2) {
 				return 0;
 			} else if (f1 > f2) {
