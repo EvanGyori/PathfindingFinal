@@ -56,7 +56,7 @@ Rules for the maze's text file:
 *#*
 ***
 ```
-	more examples of valid and invalid mazes are in the `exampleMazes/` directory.
+more examples of valid and invalid mazes are in the `exampleMazes/` directory.
 
 - Must have a starting and ending position
 - Impossible mazes are allowed
@@ -77,19 +77,6 @@ Execute:
 java -jar junit.jar -cp . --scan-classpath
 ```
 
-## Example Output
-When `exampleMazes/validMaze3.txt` is input into the program, the resulting output will be shown:
-```
-1++++++
-*#####+
-*#2#*#+
-*#+#*#+
-*#+++#+
-*###+++
-```
-
-the `+` characters indicate the path
-
 ## Challenges
 Implementing all of the classes and the whole maze and path system were relatively easy but required some planning and took time to implement. However, they were worth the effort as the program feels very structured and organized to me atleast.
 
@@ -97,7 +84,7 @@ The most challenging part was figuring out how the A* pathfinding algorithm work
 
 ## Acknowledgements
 [Introduction to A*](https://theory.stanford.edu/~amitp/GameProgramming/AStarComparison.html)
-Used to learn the A* pathfinding algorithm rules and specifics.
+<p>Used to learn the A* pathfinding algorithm rules and specifics.
 
 ## Project Requirements (kept for my reference)
 
