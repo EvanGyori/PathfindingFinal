@@ -31,10 +31,22 @@ public class Maze
 	 * Represents each type of tile in the maze
 	 */
 	public enum TileType
-	{
+	{	
+		/**
+		 * An empty tile
+		 */
 		EMPTY,
+		/**
+		 * An unpassable tile
+		 */
 		WALL,
+		/**
+		 * Starting path tile
+		 */
 		START,
+		/**
+		 * Ending path tile
+		 */
 		END
 	}
 	
