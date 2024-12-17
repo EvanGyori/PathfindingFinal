@@ -1,4 +1,4 @@
-A final project for school that I did not find out until later that my approach was flawed and it instead will sometimes find the longest path. I hope to remake the project sometime in the futures. Original README:
+A final project for school that I found out later that my approach was flawed. It instead finds the longest path for some scenarios such as `failedMaze.txt`. I hope to remake the project sometime in the future. Original README:
 
 # A* Pathfinding Algorithm Final Project
 The program takes in a file representing a maze to be solved and shows the shortest path between two points and knows when a maze cannot be solved. The program uses the A* algorithm and made use of lists, sets, maps, recursion, and stacks.
